@@ -1,0 +1,142 @@
+name: CI & Release
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*', 'v*.*', 'v*.*.*' ]
+  pull_request:
+
+jobs:
+  pre-commit:
+    name: pre-commit checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Run pre-commit
+        uses: pre-commit/action@v4.3.0
+        with:
+          extra_args: '--all-files'
+
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    needs: pre-commit
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Cache cargo registry & target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Build workspace
+        run: cargo build --workspace --release
+
+      - name: Run tests
+        run: cargo test --workspace --release
+
+  create_release:
+    name: Create GitHub Release (tag)
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body: |
+            Automated release from tag `${{ github.ref_name }}`.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build_and_upload:
+    name: Build CLI and upload release asset
+    needs: create_release
+    if: needs.create_release.outputs.upload_url != ''
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        os_name: [linux, macos, windows]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Build `uuid-cli` (release)
+        run: |
+          cargo build -p uuid-cli --release
+
+      - name: Prepare release directory
+        run: |
+          mkdir -p release
+          if [ "${{ matrix.os_name }}" = "windows" ]; then exit 0; fi
+      - name: Copy binary (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cp target/release/uuid-cli release/uuid-cli
+
+      - name: Copy binary (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir release
+          copy target\release\uuid-cli.exe release\uuid-cli.exe
+
+      - name: Create zip (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          ZIP_NAME="uuid-cli-${{ matrix.os_name }}-${{ github.ref_name }}.zip"
+          zip -j "$ZIP_NAME" release/*
+          echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_OUTPUT
+
+      - name: Create zip (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $zip = "uuid-cli-${{ matrix.os_name }}-${{ github.ref_name }}.zip"
+          Compress-Archive -Path release\\* -DestinationPath $zip -Force
+          Write-Output "ZIP_NAME=$zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: ${{ env.ZIP_NAME }}
+          asset_name: ${{ env.ZIP_NAME }}
+          asset_content_type: application/zip
