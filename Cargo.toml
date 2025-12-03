@@ -1,6 +1,5 @@
 [workspace]
 members = ["cli", "core"]
-
+license = "MIT"
 # Use resolver 2 for edition-2021 members
 resolver = "2"
-
