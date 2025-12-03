@@ -1,0 +1,12 @@
+[package]
+name = "core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+uuid = { version = "1.19", features = ["v1", "v4", "v5", "v6", "v7", "rng-rand"] }
+rand = "0.8"
+
+[lib]
+name = "core"
+path = "src/lib.rs"

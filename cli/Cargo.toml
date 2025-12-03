@@ -1,0 +1,12 @@
+[package]
+name = "uuid-cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.3", features = ["derive"] }
+core_lib = { package = "core", path = "../core" }
+
+[dev-dependencies]
+assert_cmd = "2.0"
+predicates = "2.1"

@@ -1,0 +1,46 @@
+default_install_hook_types: [pre-commit, pre-push]
+
+repos:
+  - repo: local
+    hooks:
+      - id: fmt
+        name: format
+        entry: cargo fmt --all -- --check
+        language: system
+        types: [rust]
+        pass_filenames: false
+      - id: test
+        name: test
+        entry: cargo test --all
+        language: system
+        types: [rust]
+        pass_filenames: false
+      - id: integration-test
+        name: integration test
+        entry: cargo test -p uuid-cli --test cli_integration
+        language: system
+        types: [rust]
+        pass_filenames: false
+      - id: build
+        name: Build
+        entry: cargo build --all --release
+        language: system
+        types: [rust]
+        pass_filenames: false
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-json
+  - repo: https://github.com/koalaman/shellcheck-precommit
+    rev: v0.7.2
+    hooks:
+      - id: shellcheck
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+        stages:
+          - pre-commit
