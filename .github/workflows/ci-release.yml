@@ -111,17 +111,20 @@ jobs:
       - name: Build (release)
         run: cargo build --release --target ${{ matrix.target }} --locked
       - name: Upload artifact
+        if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.PROJECT_NAME }}-${{ github.ref_name }}-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}${{ endsWith(matrix.target, 'windows-msvc') && '.exe' || '' }}
       - name: Download current artifact
+        if: startsWith(github.ref, 'refs/tags/')
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.PROJECT_NAME }}-${{ github.ref_name }}-${{ matrix.target }}
           path: artifacts
 
       - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
