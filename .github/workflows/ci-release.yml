@@ -52,15 +52,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-          - os: ubuntu-latest
-            target: i686-unknown-linux-gnu
+          # Linux (cross)
+          - { os: ubuntu-latest, target: arm-unknown-linux-gnueabihf, use-cross: use-cross }
+          - { os: ubuntu-latest, target: aarch64-unknown-linux-gnu,    use-cross: use-cross }
+          - { os: ubuntu-latest, target: aarch64-unknown-linux-musl,   use-cross: use-cross }
+          - { os: ubuntu-latest, target: i686-unknown-linux-gnu,       use-cross: use-cross }
+          - { os: ubuntu-latest, target: i686-unknown-linux-musl,      use-cross: use-cross }
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu,     use-cross: use-cross }
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-musl,    use-cross: use-cross }
           # macOS
           - os: macos-latest
             target: x86_64-apple-darwin
@@ -78,7 +77,7 @@ jobs:
         with:
           targets: ${{ matrix.target }}
       - name: Install cross-compilation tools
-        if: (startsWith(matrix.target, 'aarch64') || contains(matrix.target, 'i686')) && matrix.os == 'ubuntu-latest'
+        if: (startsWith(matrix.target, 'aarch64') || contains(matrix.target, 'i686')) && matrix.os == 'ubuntu-latest' && !matrix.use-cross
         run: |
           if [[ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]]; then
             sudo apt-get update
@@ -89,6 +88,7 @@ jobs:
           fi
         shell: bash
       - name: Setup Cargo config
+        if: matrix.os == 'ubuntu-latest' && !matrix.use-cross
         run: |
           mkdir -p .cargo
           echo '[target.aarch64-unknown-linux-gnu]' > .cargo/config.toml
@@ -97,9 +97,13 @@ jobs:
           echo '[target.i686-unknown-linux-gnu]' >> .cargo/config.toml
           echo 'linker = "i686-linux-gnu-gcc"' >> .cargo/config.toml
 
-      - name: Test (target)
-        if: matrix.os == 'ubuntu-latest' && (matrix.target == 'x86_64-unknown-linux-gnu' || matrix.target == 'x86_64-unknown-linux-musl')
-        run: cargo test --target ${{ matrix.target }}
+      - name: Install cross
+        if: matrix.os == 'ubuntu-latest' && matrix.use-cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Test (target - linux via cross)
+        if: matrix.os == 'ubuntu-latest' && matrix.use-cross
+        run: cross test --target ${{ matrix.target }}
 
       - name: Test (target - macOS)
         if: matrix.os == 'macos-latest' && matrix.target == 'x86_64-apple-darwin'
@@ -108,7 +112,12 @@ jobs:
       - name: Test (target - Windows)
         if: matrix.os == 'windows-latest' && matrix.target == 'x86_64-pc-windows-msvc'
         run: cargo test --target ${{ matrix.target }}
-      - name: Build (release)
+      - name: Build (release via cross)
+        if: matrix.use-cross
+        run: cross build --release --target ${{ matrix.target }} --locked
+
+      - name: Build (release via cargo)
+        if: ${{ !matrix.use-cross }}
         run: cargo build --release --target ${{ matrix.target }} --locked
       - name: Upload artifact
         if: startsWith(github.ref, 'refs/tags/')
