@@ -1,7 +1,7 @@
 use clap::Parser;
 use core_lib as core;
 
-/// Simple CLI to generate UUID values (v1, v4, v5, v6, v7).
+/// Simple CLI to generate UUID values (v1, v4, v5, 6, v7).
 #[derive(Parser, Debug)]
 #[command(author, version, about = "Generate UUID (multiple versions)", long_about = None, disable_version_flag = true)]
 struct Args {
@@ -22,8 +22,8 @@ struct Args {
     upper: bool,
 
     /// UUID version to generate (supported: 1, 4, 5, 6, 7)
-    #[arg(short = 'v', long = "version", default_value_t = 7)]
-    version: u8,
+    #[arg(long = "uuid-version", default_value_t = 7)]
+    uuid_version: u8,
 
     /// Name for version 5 UUID (required for v5)
     #[arg(long = "name")]
@@ -37,18 +37,26 @@ struct Args {
 fn main() {
     let args = Args::parse();
 
+    match args.uuid_version {
+        1 | 4 | 5 | 6 | 7 => (),
+        other => {
+            eprintln!("unsupported version: {}", other);
+            std::process::exit(2);
+        }
+    };
+
+    if args.uuid_version == 5 && args.name.is_none() {
+        eprintln!("version 5 requires --name <NAME>");
+        std::process::exit(2);
+    }
+
     for _ in 0..args.count {
-        let u = match args.version {
+        let u = match args.uuid_version {
             1 => core::generate_v1(),
             4 => core::generate_v4(),
             5 => {
-                let name = match &args.name {
-                    Some(n) => n.as_str(),
-                    None => {
-                        eprintln!("version 5 requires --name <NAME>");
-                        std::process::exit(2);
-                    }
-                };
+                // Safe to unwrap because we validated above
+                let name = args.name.as_ref().unwrap();
                 core::generate_v5(name, &args.namespace)
             }
             6 => core::generate_v6(),

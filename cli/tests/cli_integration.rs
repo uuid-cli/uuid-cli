@@ -36,13 +36,13 @@ fn generate_braced_upper() {
 #[test]
 fn v5_requires_name_and_generates_v5() {
     let mut cmd = cargo_bin_cmd!("uuid-cli");
-    cmd.args(["-v", "5"]);
+    cmd.args(["--uuid-version", "5"]);
     cmd.assert()
         .failure()
         .stderr(predicate::str::contains("requires --name"));
 
     let mut cmd2 = cargo_bin_cmd!("uuid-cli");
-    cmd2.args(["-v", "5", "--name", "example"]);
+    cmd2.args(["--uuid-version", "5", "--name", "example"]);
     cmd2.assert().success().stdout(
         predicate::str::is_match(
             r"^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}\n$",
