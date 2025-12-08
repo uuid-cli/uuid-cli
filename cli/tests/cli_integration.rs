@@ -52,6 +52,21 @@ fn v5_requires_name_and_generates_v5() {
 }
 
 #[test]
+fn version_flag_outputs_version() {
+    let mut cmd = cargo_bin_cmd!("uuid-cli");
+    cmd.arg("-v");
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains(env!("CARGO_PKG_VERSION")));
+
+    let mut cmd = cargo_bin_cmd!("uuid-cli");
+    cmd.arg("--version");
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains(env!("CARGO_PKG_VERSION")));
+}
+
+#[test]
 fn count_generates_multiple_lines() {
     let output = cargo_bin_cmd!("uuid-cli")
         .args(["-n", "3"])

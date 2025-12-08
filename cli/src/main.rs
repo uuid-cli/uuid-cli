@@ -21,6 +21,10 @@ struct Args {
     #[arg(long = "upper")]
     upper: bool,
 
+    /// Show version information
+    #[arg(short = 'v', long = "version")]
+    version: bool,
+
     /// UUID version to generate (supported: 1, 4, 5, 6, 7)
     #[arg(long = "uuid-version", default_value_t = 7)]
     uuid_version: u8,
@@ -36,6 +40,11 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
+
+    if args.version {
+        println!("{}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
 
     match args.uuid_version {
         1 | 4 | 5 | 6 | 7 => (),
