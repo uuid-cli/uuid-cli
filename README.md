@@ -27,15 +27,6 @@ cargo build --release
 cargo test
 ```
 
-## Releases
-
-Prebuilt release artifacts are published on GitHub Releases. Artifact naming follows this pattern:
-
-- `uuid-cli-<tag>-<target>.tar.gz` (example: `uuid-cli-v0.1.7-aarch64-apple-darwin.tar.gz`)
-- Debian packages (when built for a tag) are named: `uuid-cli_<version>_<arch>.deb` (example: `uuid-cli_0.1.7_arm64.deb`).
-
-Each tarball contains the `uuid-cli` binary, `README.md`, `LICENSE`, and optionally completions and a manpage when available.
-
 ## Usage
 
 ```sh
@@ -59,6 +50,30 @@ If you need a local cross-build setup, consider using `cross` or setting up the 
 
 - Build and run tests locally with `cargo build --release` and `cargo test`.
 - Open issues or PRs for bugs and improvements. Follow the repository's contribution guidelines when available.
+
+## Releases
+
+- Update the version in `Cargo.toml` under cli
+- publish via GitHub Actions with bellow command:
+  ```sh
+  git tag v1.0.0
+  git push origin --tags
+  ```
+- Update the `homebrew-uuid-cli/Formula/uuid-cli.rb` of [homebrew-uuid-cli](https://github.com/guzhongren/homebrew-uuid-cli/blob/main/Formula/uuid-cli.rb)
+All the `url` and `sha256` should be retrived from the [release page](https://github.com/guzhongren/uuid-cli/releases).
+
+
+<details>
+<summary>Release info</summary>
+Prebuilt release artifacts are published on GitHub Releases. Artifact naming follows this pattern:
+
+- `uuid-cli-<tag>-<target>.tar.gz` (example: `uuid-cli-v0.1.7-aarch64-apple-darwin.tar.gz`)
+- Debian packages (when built for a tag) are named: `uuid-cli_<version>_<arch>.deb` (example: `uuid-cli_0.1.7_arm64.deb`).
+
+Each tarball contains the `uuid-cli` binary, `README.md`, `LICENSE`, and optionally completions and a manpage when available.
+
+</details>
+
 
 ## License
 
