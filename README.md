@@ -5,6 +5,10 @@ Small CLI to generate UUID values.
 ## How to use
 
 ```sh
+# If failure to install the latest version
+# brew uninstall uuid-cli
+# brew untap guzhongren/uuid-cli
+
 brew tap guzhongren/uuid-cli
 brew install uuid-cli
 
