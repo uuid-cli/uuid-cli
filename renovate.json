@@ -16,6 +16,10 @@
     {
       "matchDepTypes": ["dev-dependencies"],
       "automerge": true
+    },
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
     }
   ],
   "schedule": ["before 6am on Monday"]
