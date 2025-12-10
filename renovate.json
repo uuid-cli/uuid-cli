@@ -1,0 +1,22 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["cargo"],
+      "enabled": true
+    },
+    {
+      "matchPackageNames": ["uuid"],
+      "matchUpdateTypes": ["major", "minor", "patch"],
+      "automerge": true
+    },
+    {
+      "matchDepTypes": ["dev-dependencies"],
+      "automerge": true
+    }
+  ],
+  "schedule": ["before 6am on Monday"]
+}
