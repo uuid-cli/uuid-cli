@@ -14,7 +14,7 @@ jobs:
     name: Style
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install toolchain (min SRV)
         uses: dtolnay/rust-toolchain@master
         with:
@@ -31,7 +31,7 @@ jobs:
     name: Test (min SRV)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install toolchain (min SRV)
         uses: dtolnay/rust-toolchain@master
         with:
@@ -96,7 +96,7 @@ jobs:
           - os: windows-latest
             target: i686-pc-windows-msvc
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install toolchain (stable + target)
         uses: dtolnay/rust-toolchain@stable
         with:
