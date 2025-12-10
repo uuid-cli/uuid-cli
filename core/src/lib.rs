@@ -1,11 +1,11 @@
-use rand::rngs::OsRng;
+use rand::rng;
 use rand::RngCore;
 use uuid::Uuid;
 
 /// Generate a version 1 UUID (timestamp + node id). Node ID is randomly generated.
 pub fn generate_v1() -> Uuid {
     let mut node = [0u8; 6];
-    OsRng.fill_bytes(&mut node);
+    rng().fill_bytes(&mut node);
     Uuid::now_v1(&node)
 }
 
@@ -29,7 +29,7 @@ pub fn generate_v5(name: &str, namespace: &str) -> Uuid {
 /// Generate a version 6 UUID (timestamp-ordered). Node ID is randomly generated.
 pub fn generate_v6() -> Uuid {
     let mut node = [0u8; 6];
-    OsRng.fill_bytes(&mut node);
+    rng().fill_bytes(&mut node);
     Uuid::now_v6(&node)
 }
 
