@@ -7,7 +7,6 @@ on:
   pull_request:
 
 env:
-  PROJECT_NAME: uuid-cli
   PROJECT_DESC: "UUID generator"
   PROJECT_AUTH: "guzhongren <guzhongren@users.noreply.github.com>"
   RUST_MIN_SRV: "1.85.0"
@@ -153,11 +152,11 @@ jobs:
         run: |
           set -euo pipefail
           BIN_DIR="target/${{ matrix.target }}/release"
-          BIN_NAME="${{ env.PROJECT_NAME }}${{ endsWith(matrix.target, 'windows-msvc') && '.exe' || '' }}"
+          BIN_NAME="${{ github.event.repository.name }}${{ endsWith(matrix.target, 'windows-msvc') && '.exe' || '' }}"
           VERSION="${{ github.ref_name }}"
-          ARCHIVE_NAME="${{ env.PROJECT_NAME }}-${VERSION}-${{ matrix.target }}.tar.gz"
+          ARCHIVE_NAME="${{ github.event.repository.name }}-${VERSION}-${{ matrix.target }}.tar.gz"
           STAGING_ROOT="artifacts"
-          STAGING_DIR="${STAGING_ROOT}/${{ env.PROJECT_NAME }}-${VERSION}-${{ matrix.target }}"
+          STAGING_DIR="${STAGING_ROOT}/${{ github.event.repository.name }}-${VERSION}-${{ matrix.target }}"
 
           mkdir -p "${STAGING_DIR}"
           cp "${BIN_DIR}/${BIN_NAME}" "${STAGING_DIR}/"
