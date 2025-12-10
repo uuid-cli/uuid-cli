@@ -7,9 +7,9 @@ Small CLI to generate UUID values.
 ```sh
 # If failure to install the latest version
 # brew uninstall uuid-cli
-# brew untap guzhongren/uuid-cli
+# brew untap uuid-cli/uuid-cli
 
-brew tap guzhongren/uuid-cli
+brew tap uuid-cli/uuid-cli
 brew install uuid-cli
 
 # Test
@@ -63,8 +63,8 @@ If you need a local cross-build setup, consider using `cross` or setting up the 
   git tag v1.0.0
   git push origin --tags
   ```
-- Update the `homebrew-uuid-cli/Formula/uuid-cli.rb` of [homebrew-uuid-cli](https://github.com/guzhongren/homebrew-uuid-cli/blob/main/Formula/uuid-cli.rb)
-All the `url` and `sha256` should be retrived from the [release page](https://github.com/guzhongren/uuid-cli/releases).
+- Update the `homebrew-uuid-cli/Formula/uuid-cli.rb` of [homebrew-uuid-cli](https://github.com/uuid-cli/homebrew-uuid-cli/blob/main/Formula/uuid-cli.rb)
+All the `url` and `sha256` should be retrived from the [release page](https://github.com/uuid-cli/uuid-cli/releases).
 
 
 <details>
