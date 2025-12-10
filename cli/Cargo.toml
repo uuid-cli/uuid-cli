@@ -9,4 +9,4 @@ core_lib = { package = "core", path = "../core" }
 
 [dev-dependencies]
 assert_cmd = "2.0"
-predicates = "2.1"
+predicates = "3.0"
