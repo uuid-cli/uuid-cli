@@ -7,8 +7,6 @@ on:
   pull_request:
 
 env:
-  PROJECT_DESC: "UUID generator"
-  PROJECT_AUTH: "guzhongren <guzhongren@users.noreply.github.com>"
   RUST_MIN_SRV: "1.85.0"
 
 jobs:
