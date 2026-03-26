@@ -1,4 +1,3 @@
-
 name: Cross-Platform Build
 
 on:
@@ -17,9 +16,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install toolchain (min SRV)
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ env.RUST_MIN_SRV }}
           components: rustfmt, clippy
       - name: fmt
         run: cargo fmt --all -- --check
@@ -40,6 +38,9 @@ jobs:
       - name: cargo test
         run: cargo test --locked
   build:
+    needs: 
+      - style
+      - test-min
     strategy:
       matrix:
         include:
