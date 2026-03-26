@@ -1,0 +1,16 @@
+# .cargo/config.toml for the project
+
+# Release profile optimizations (already in Cargo.toml, shown for reference)
+# [profile.release]
+# lto = true
+# codegen-units = 1
+# panic = "abort"
+# strip = true
+
+# aarch64 for ARM servers (Graviton, Ampere, Grace)
+[target.aarch64-unknown-linux-gnu]
+linker = "aarch64-linux-gnu-gcc"
+
+# musl for portable static binaries
+[target.x86_64-unknown-linux-musl]
+linker = "musl-gcc"
