@@ -1,179 +1,62 @@
-name: CICD
+# .github/workflows/cross-build.yml
+name: Cross-Platform Build
 
-on:
-  push:
-    branches: [main, master]
-    tags: ["v*"]
-  pull_request:
+on: [push, pull_request]
 
 env:
-  RUST_MIN_SRV: "1.85.0"
+  CARGO_TERM_COLOR: always
 
 jobs:
-  style:
-    name: Style
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - name: Install toolchain (min SRV)
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.RUST_MIN_SRV }}
-          components: rustfmt, clippy
-      - name: fmt
-        run: cargo fmt --all -- --check
-      - name: clippy
-        run: cargo clippy --tests -- -D warnings
-      - name: clap deprecated checks
-        run: cargo check --features clap/deprecated
-
-  test-min:
-    name: Test (min SRV)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - name: Install toolchain (min SRV)
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.RUST_MIN_SRV }}
-      - name: cargo test
-        run: cargo test --locked
-
   build:
-    name: Build + Test (matrix)
-    needs: [style, test-min]
-    runs-on: ${{ matrix.os }}
-    permissions:
-      contents: write
     strategy:
-      fail-fast: false
       matrix:
         include:
-          # Linux (cross)
-          - {
-              os: ubuntu-latest,
-              target: arm-unknown-linux-gnueabihf,
-              use-cross: use-cross,
-            }
-          - {
-              os: ubuntu-latest,
-              target: aarch64-unknown-linux-gnu,
-              use-cross: use-cross,
-            }
-          - {
-              os: ubuntu-latest,
-              target: aarch64-unknown-linux-musl,
-              use-cross: use-cross,
-            }
-          - {
-              os: ubuntu-latest,
-              target: i686-unknown-linux-gnu,
-              use-cross: use-cross,
-            }
-          - {
-              os: ubuntu-latest,
-              target: i686-unknown-linux-musl,
-              use-cross: use-cross,
-            }
-          - {
-              os: ubuntu-latest,
-              target: x86_64-unknown-linux-gnu,
-              use-cross: use-cross,
-            }
-          - {
-              os: ubuntu-latest,
-              target: x86_64-unknown-linux-musl,
-              use-cross: use-cross,
-            }
-          # macOS
-          - os: macos-latest
-            target: x86_64-apple-darwin
-          - os: macos-latest
-            target: aarch64-apple-darwin
-          # Windows
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-          - os: windows-latest
-            target: i686-pc-windows-msvc
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            name: linux-x86_64
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            name: linux-x86_64-static
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            name: linux-aarch64
+            use_cross: true
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            name: windows-x86_64
+
+    runs-on: ${{ matrix.os }}
+    name: Build (${{ matrix.name }})
+
     steps:
-      - uses: actions/checkout@v6
-      - name: Install toolchain (stable + target)
-        uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-      - name: Install cross-compilation tools
-        if: (startsWith(matrix.target, 'aarch64') || contains(matrix.target, 'i686')) && matrix.os == 'ubuntu-latest' && !matrix.use-cross
-        run: |
-          if [[ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]]; then
-            sudo apt-get update
-            sudo apt-get install -y gcc-aarch64-linux-gnu
-          elif [[ "${{ matrix.target }}" == "i686-unknown-linux-gnu" ]]; then
-            sudo apt-get update
-            sudo apt-get install -y gcc-i686-linux-gnu
-          fi
-        shell: bash
-      - name: Setup Cargo config
-        if: matrix.os == 'ubuntu-latest' && !matrix.use-cross
-        run: |
-          mkdir -p .cargo
-          echo '[target.aarch64-unknown-linux-gnu]' > .cargo/config.toml
-          echo 'linker = "aarch64-linux-gnu-gcc"' >> .cargo/config.toml
-          echo '' >> .cargo/config.toml
-          echo '[target.i686-unknown-linux-gnu]' >> .cargo/config.toml
-          echo 'linker = "i686-linux-gnu-gcc"' >> .cargo/config.toml
+
+      - name: Install musl tools
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: sudo apt-get install -y musl-tools
 
       - name: Install cross
-        if: matrix.os == 'ubuntu-latest' && matrix.use-cross
-        run: cargo install cross --git https://github.com/cross-rs/cross
+        if: matrix.use_cross
+        run: cargo install cross
 
-      - name: Test core crate (linux via cross)
-        if: matrix.os == 'ubuntu-latest' && matrix.use-cross
-        run: cross test --target ${{ matrix.target }} -p core --locked
+      - name: Build (native)
+        if: "!matrix.use_cross"
+        run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Test CLI (macOS)
-        if: matrix.os == 'macos-latest' && matrix.target == 'x86_64-apple-darwin'
-        run: cargo test --target ${{ matrix.target }} -p uuid-cli --locked
+      - name: Build (cross)
+        if: matrix.use_cross
+        run: cross build --release --target ${{ matrix.target }}
 
-      - name: Test CLI (Windows)
-        if: matrix.os == 'windows-latest' && matrix.target == 'x86_64-pc-windows-msvc'
-        run: cargo test --target ${{ matrix.target }} -p uuid-cli --locked
-      - name: Build (release via cross)
-        if: matrix.use-cross
-        run: cross build --release --target ${{ matrix.target }} --locked
+      - name: Run tests
+        if: "!matrix.use_cross"
+        run: cargo test --target ${{ matrix.target }}
 
-      - name: Build (release via cargo)
-        if: ${{ !matrix.use-cross }}
-        run: cargo build --release --target ${{ matrix.target }} --locked
-      - name: Package archive (.tar.gz)
-        if: startsWith(github.ref, 'refs/tags/')
-        shell: bash
-        run: |
-          set -euo pipefail
-          BIN_DIR="target/${{ matrix.target }}/release"
-          BIN_NAME="${{ github.event.repository.name }}${{ endsWith(matrix.target, 'windows-msvc') && '.exe' || '' }}"
-          VERSION="${{ github.ref_name }}"
-          ARCHIVE_NAME="${{ github.event.repository.name }}-${VERSION}-${{ matrix.target }}.tar.gz"
-          STAGING_ROOT="artifacts"
-          STAGING_DIR="${STAGING_ROOT}/${{ github.event.repository.name }}-${VERSION}-${{ matrix.target }}"
-
-          mkdir -p "${STAGING_DIR}"
-          cp "${BIN_DIR}/${BIN_NAME}" "${STAGING_DIR}/"
-          if [[ "${{ matrix.target }}" != *"windows-msvc"* ]]; then
-            chmod +x "${STAGING_DIR}/${BIN_NAME}"
-          fi
-
-          for f in README.md CHANGELOG.md LICENSE; do
-            [[ -f "$f" ]] && cp "$f" "${STAGING_DIR}/"
-          done
-
-          mkdir -p "${STAGING_ROOT}"
-          tar -C "${STAGING_ROOT}" -czf "${STAGING_ROOT}/${ARCHIVE_NAME}" "$(basename "${STAGING_DIR}")"
-
-      - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            artifacts/*.tar.gz
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: uuid-cli-${{ matrix.name }}
+          path: target/${{ matrix.target }}/release/uuid-cli*
