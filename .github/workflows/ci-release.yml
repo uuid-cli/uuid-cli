@@ -39,6 +39,8 @@ jobs:
     needs: 
       - style
       - test-min
+    permissions:
+      contents: write
     strategy:
       matrix:
         include:
