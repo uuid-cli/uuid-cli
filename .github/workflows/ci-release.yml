@@ -1,12 +1,44 @@
-# .github/workflows/cross-build.yml
+
 name: Cross-Platform Build
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  style:
+    name: Style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install toolchain (min SRV)
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_MIN_SRV }}
+          components: rustfmt, clippy
+      - name: fmt
+        run: cargo fmt --all -- --check
+      - name: clippy
+        run: cargo clippy --tests -- -D warnings
+      - name: clap deprecated checks
+        run: cargo check --features clap/deprecated
+
+  test-min:
+    name: Test (min SRV)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install toolchain (min SRV)
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_MIN_SRV }}
+      - name: cargo test
+        run: cargo test --locked
   build:
     strategy:
       matrix:
@@ -61,8 +93,36 @@ jobs:
         if: "!matrix.use_cross"
         run: cargo test --target ${{ matrix.target }}
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Package archive (.tar.gz)
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          set -euo pipefail
+          BIN_DIR="target/${{ matrix.target }}/release"
+          BIN_NAME="${{ github.event.repository.name }}${{ endsWith(matrix.target, 'windows-msvc') && '.exe' || '' }}"
+          VERSION="${{ github.ref_name }}"
+          ARCHIVE_NAME="${{ github.event.repository.name }}-${VERSION}-${{ matrix.target }}.tar.gz"
+          STAGING_ROOT="artifacts"
+          STAGING_DIR="${STAGING_ROOT}/${{ github.event.repository.name }}-${VERSION}-${{ matrix.target }}"
+
+          mkdir -p "${STAGING_DIR}"
+          cp "${BIN_DIR}/${BIN_NAME}" "${STAGING_DIR}/"
+          if [[ "${{ matrix.target }}" != *"windows-msvc"* ]]; then
+            chmod +x "${STAGING_DIR}/${BIN_NAME}"
+          fi
+
+          for f in README.md CHANGELOG.md LICENSE; do
+            [[ -f "$f" ]] && cp "$f" "${STAGING_DIR}/"
+          done
+
+          mkdir -p "${STAGING_ROOT}"
+          tar -C "${STAGING_ROOT}" -czf "${STAGING_ROOT}/${ARCHIVE_NAME}" "$(basename "${STAGING_DIR}")"
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
         with:
-          name: uuid-cli-${{ matrix.name }}
-          path: target/${{ matrix.target }}/release/uuid-cli*
+          files: |
+            artifacts/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
